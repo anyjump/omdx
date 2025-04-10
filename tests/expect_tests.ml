@@ -1,4 +1,5 @@
-let show x = Omdx.to_sexp x |> print_string
+let show_sexp x = Omdx.to_sexp x |> print_string
+let show_html x = Omdx.to_html x |> print_string
 
 (* let%expect_test "construct inline elements" = *)
 (*   show *)
@@ -230,7 +231,7 @@ let%expect_test "html with attributes" =
     {|
   # Heading 1
 
-  <div className="text-white-500 bg-gray-900">
+  <div className="text-white-500 bg-gray-900" tight testing="true">
   This is a nice and basic markdown document.
   With a paragraph on 2 lines.
   </div>
@@ -241,7 +242,8 @@ let%expect_test "html with attributes" =
   [%expect
     {|
     ((heading 1 "Heading 1")
-     (html-block div ((className "text-white-500 bg-gray-900"))
+     (html-block div
+      ((className "text-white-500 bg-gray-900") (tight ) (testing true))
       (paragraph
        (concat "This is a nice and basic markdown document." soft-break
         "With a paragraph on 2 lines."))))
@@ -319,5 +321,39 @@ With a paragraph on 2 lines.
      (paragraph
       (concat "This is a nice and basic markdown document." soft-break
        "With a paragraph on 2 lines.")))
+    |}]
+;;
+
+let%expect_test "jsx custom component block" =
+  let h1 =
+    {|
+# Heading 1
+
+<CustomComponent className="text-white-500 bg-gray-900">
+  <p>
+    Some text
+  </p>
+</CustomComponent>
+This is a nice and basic markdown document.
+With a paragraph on 2 lines.
+
+|}
+  in
+  Omdx.of_string h1 |> Omdx.to_html |> print_string;
+  [%expect
+    {|
+    <h1 id="heading-1">
+    Heading 1</h1>
+    <CustomComponent className="text-white-500 bg-gray-900">
+
+    <p>
+
+    <p>
+    Some text</p>
+    </p>
+    </CustomComponent>
+    <p>
+    This is a nice and basic markdown document.
+    With a paragraph on 2 lines.</p>
     |}]
 ;;
