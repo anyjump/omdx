@@ -210,7 +210,6 @@ type t =
       ; len : int
       } (** the level of the heading and how long the underline marker is *)
   | Lfenced_code of int * int * code_block_kind * (string * string) * attributes
-  | Lindented_code of Str_slice.t
   | Lhtml_start of string * attributes (* tag_name, attrs *)
   | Lhtml_end of string (* tag_name *)
   | Llist_item of list_type * int * Str_slice.t
@@ -703,11 +702,6 @@ let def_list s =
   | _ -> raise Fail
 ;;
 
-let indented_code ind s =
-  if indent s + ind < 4 then raise Fail;
-  Lindented_code (Str_slice.offset (4 - ind) s)
-;;
-
 let table_row ~pipe_prefix s =
   let rec loop items seen_pipe s =
     match Str_slice.index_unescaped '|' s with
@@ -748,7 +742,7 @@ let parse s0 =
   | Some '0' .. '9' -> (ordered_list_item ind ||| table_row ~pipe_prefix:false) s
   | Some ':' -> (def_list ||| table_row ~pipe_prefix:false) s
   | Some '|' -> table_row ~pipe_prefix:true (Str_slice.tail s)
-  | Some _ -> (blank ||| indented_code ind ||| table_row ~pipe_prefix:false) s
+  | Some _ -> (blank ||| table_row ~pipe_prefix:false) s
   | None -> Lempty
 ;;
 

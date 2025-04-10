@@ -11,8 +11,6 @@ module Pre = struct
     | Rparagraph of string list (* An open paragraph with a list of lines *)
     | Rfenced_code of
         int * int * Parser.code_block_kind * (string * string) * string list * attributes
-      (* An open fenced code block with indentation, fence length, kind, info string, lines, and attributes *)
-    | Rindented_code of string list (* An open indented code block with lines *)
     (* Updated Rhtml state *)
     | Rhtml of
         string
@@ -78,13 +76,6 @@ module Pre = struct
         | b -> [], b
       in
       Definition_list ([], l @ [ { term; defs = List.rev defs } ]) :: blocks'
-    | Rindented_code l ->
-      let rec loop = function
-        | "" :: ls -> loop ls
-        | ls -> ls
-      in
-      Code_block ([], "", concat (loop l)) :: blocks
-      (* Updated Rhtml closing logic *)
     | Rhtml (tag, attr, state) ->
       Html_block (attr, tag, finish state) :: blocks (* Add tag *)
     | Rtable_header (_header, line) ->
@@ -157,8 +148,6 @@ module Pre = struct
     | Rempty, Lhtml_start (tag, attr) -> { blocks; next = Rhtml (tag, attr, empty) }
     (* Ignore Lhtml_end at top level - treat as paragraph *)
     | Rempty, Lhtml_end _ -> { blocks; next = Rparagraph [ Str_slice.to_string s ] }
-    | Rempty, Lindented_code s' ->
-      { blocks; next = Rindented_code [ Str_slice.to_string s' ] }
     | Rempty, Llist_item (kind, indent, s') ->
       { blocks; next = Rlist (kind, Tight, false, indent, [], process empty s') }
     | Rempty, (Lsetext_heading _ | Lparagraph | Ldef_list _ | Ltable_line []) ->
@@ -228,14 +217,6 @@ module Pre = struct
       let row = match_row_length header [ s ] in
       { blocks; next = Rtable (header, row :: rows) }
     | Rtable _, _ -> process { blocks = close { blocks; next }; next = Rempty } s
-    (* === INDENTED CODE BLOCK === *)
-    | Rindented_code lines, Lindented_code s' ->
-      { blocks; next = Rindented_code (Str_slice.to_string s' :: lines) }
-    | Rindented_code lines, Lempty ->
-      let n = min (Parser.indent s) 4 in
-      let s_line = Str_slice.offset n s in
-      { blocks; next = Rindented_code (Str_slice.to_string s_line :: lines) }
-    | Rindented_code _, _ -> process { blocks = close { blocks; next }; next = Rempty } s
     (* === HTML BLOCK === *)
     | Rhtml (opening_tag, opening_attr, inner_state), Lhtml_end closing_tag
       when opening_tag = closing_tag ->
@@ -278,7 +259,6 @@ module Pre = struct
           | Rhtml (_, _, { blocks = []; next = Rempty }) -> true (* Check inner state *)
           | Rparagraph [ _ ] -> true
           | Rfenced_code (_, _, _, _, [], _) -> true
-          | Rindented_code [ _ ] -> true
           | _ -> false
         in
         if prev_empty && starts_new_block state'.next then Loose else style
@@ -313,9 +293,8 @@ module Pre = struct
         (* Base case: Found a paragraph that can be continued *)
         | Rparagraph (_ :: _ as lines) ->
           (match classify_line s with
-           | Parser.Lparagraph | Lindented_code _
-           | Lsetext_heading { level = 1; _ }
-           | Lhtml_end _ -> Some (Rparagraph (Str_slice.to_string s :: lines))
+           | Parser.Lparagraph | Lsetext_heading { level = 1; _ } | Lhtml_end _ ->
+             Some (Rparagraph (Str_slice.to_string s :: lines))
            | _ -> None)
         (* Cannot continue paragraph *)
         (* Base case: Not a container we can recurse into or a continuable paragraph *)
