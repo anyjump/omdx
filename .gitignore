@@ -1,0 +1,6 @@
+dune.lock/**/*
+_build/**/*
+**/node_modules/**/*
+**/output/**/*
+**/output
+

@@ -1,0 +1,9 @@
+(library
+  (name omdx)
+  (libraries
+   str
+   uucp
+   uutf
+   uunf
+   )
+  )
