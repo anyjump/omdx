@@ -14,6 +14,8 @@ type t =
   | Null (* Represents empty content *)
   | Concat of t * t (* Concatenation of HTML elements/text *)
 
+let indent_width = 2 (* Number of spaces per indent level *)
+
 (* Constructor helpers for the intermediate type *)
 let elt etype name attrs childs = Element (etype, name, attrs, childs)
 let text s = Text s
@@ -57,35 +59,92 @@ let add_attrs_to_buffer buf attrs =
   List.iter f attrs
 ;;
 
+(* Add indentation spaces to the buffer *)
+let print_indent buf level =
+  for _ = 1 to level * indent_width do
+    Buffer.add_char buf ' '
+  done
+;;
+
+(* Add a newline and set the flag indicating we are at the start of a line *)
+let print_newline buf at_start_of_line =
+  Buffer.add_char buf '\n';
+  at_start_of_line := true
+;;
+
+(* Check if we need to indent, print it if needed, and clear the flag *)
+let maybe_indent buf level at_start_of_line =
+  if !at_start_of_line
+  then (
+    print_indent buf level;
+    at_start_of_line := false)
+;;
+
 (* Recursive function to serialize the intermediate HTML type 't' to a buffer *)
-let rec add_to_buffer buf = function
-  | Element (eltype, name, attrs, None) ->
-    (* Self-closing tag format - adjust if not desired *)
-    Printf.bprintf buf "<%s%a />" name add_attrs_to_buffer attrs;
-    if eltype = Block then Buffer.add_char buf '\n'
-  | Element (eltype, name, attrs, Some c) ->
-    Printf.bprintf
-      buf
-      "<%s%a>%s%a</%s>%s"
-      name
-      add_attrs_to_buffer
-      attrs
-      (* Add newline inside table/block elements for readability *)
-      (match eltype with
-       | Table | Block -> "\n"
-       | _ -> "")
-      add_to_buffer
-      c
-      name
-      (match eltype with
-       | Table | Block -> "\n"
-       | _ -> "")
-  | Text s -> Buffer.add_string buf (htmlentities s)
-  | Raw s -> Buffer.add_string buf s
+let rec add_to_buffer buf level at_start_of_line = function
+  | Element (eltype, name, attrs, child_opt) ->
+    maybe_indent buf level at_start_of_line;
+    Buffer.add_char buf '<';
+    Buffer.add_string buf name;
+    add_attrs_to_buffer buf attrs;
+    (match child_opt, eltype with
+     | None, _ ->
+       (* Self-closing tag *)
+       Buffer.add_string buf " />";
+       if eltype = Block || eltype = Table then print_newline buf at_start_of_line
+     | Some c, (Block | Table) ->
+       (* Block/Table element with children *)
+       Buffer.add_char buf '>';
+       print_newline buf at_start_of_line;
+       add_to_buffer buf (level + 1) at_start_of_line c;
+       (* Render child indented *)
+       (* Ensure newline before closing tag if content didn't end with one *)
+       if not !at_start_of_line then print_newline buf at_start_of_line;
+       maybe_indent buf level at_start_of_line;
+       (* Indent closing tag *)
+       Printf.bprintf buf "</%s>" name;
+       print_newline buf at_start_of_line (* Newline after block/table element *)
+     | Some c, Inline ->
+       (* Inline element with children *)
+       Buffer.add_char buf '>';
+       add_to_buffer buf level at_start_of_line c;
+       (* Render child at same level *)
+       (* DO NOT indent before closing inline tag *)
+       Printf.bprintf buf "</%s>" name;
+       (* After closing an inline tag, we are definitely NOT at the start of a line *)
+       at_start_of_line := false)
+  | Text s ->
+    let escaped = htmlentities s in
+    handle_multiline_string buf level at_start_of_line escaped
+  | Raw s ->
+    (* Render raw HTML, handling potential newlines for indentation *)
+    handle_multiline_string buf level at_start_of_line s
   | Null -> ()
   | Concat (t1, t2) ->
-    add_to_buffer buf t1;
-    add_to_buffer buf t2
+    (* Process children sequentially, passing the state *)
+    add_to_buffer buf level at_start_of_line t1;
+    add_to_buffer buf level at_start_of_line t2
+
+(* Helper to handle potentially multi-line strings (Text or Raw) *)
+and handle_multiline_string buf level at_start_of_line s =
+  match String.split_on_char '\n' s with
+  | [] -> () (* Should not happen with split_on_char *)
+  | first_line :: rest_lines ->
+    (* Print first line (with potential indent) *)
+    if first_line <> ""
+    then (
+      maybe_indent buf level at_start_of_line;
+      Buffer.add_string buf first_line);
+    (* Print subsequent lines (always with newline and indent) *)
+    List.iter
+      (fun line ->
+         print_newline buf at_start_of_line;
+         if line <> ""
+         then (
+           (* Avoid adding indentation for empty lines between newlines *)
+           maybe_indent buf level at_start_of_line;
+           Buffer.add_string buf line))
+      rest_lines
 ;;
 
 (* URI escaping *)
@@ -326,17 +385,12 @@ let table_body headers rows =
 
 (* Main block conversion function *)
 let rec block ~auto_identifiers : attributes block -> t = function
-  (* Use fully qualified type *)
   | Blockquote (attr, q) ->
-    elt
-      Block
-      "blockquote"
-      attr
-      (Some (concat nl (concat_map (block ~auto_identifiers) q)))
-  | Paragraph (attr, md) ->
-    (* md is 'attributes inline' *)
-    elt Block "p" attr (Some (inline md))
+    (* REMOVE prepended nl *)
+    elt Block "blockquote" attr (Some (concat_map (block ~auto_identifiers) q))
+  | Paragraph (attr, md) -> elt Block "p" attr (Some (inline md))
   | List (attr, ty, sp, bl) ->
+    (* This case was already fixed in the previous step *)
     let name =
       match ty with
       | Ordered _ -> "ol"
@@ -348,44 +402,50 @@ let rec block ~auto_identifiers : attributes block -> t = function
       | _ -> attr
     in
     let li t =
-      (* Handle tight vs loose lists *)
       let block' item =
         match item, sp with
-        | Paragraph (_, content), Tight ->
-          concat (inline content) nl (* No <p> in tight lists *)
+        | Paragraph (_, content), Tight -> inline content
         | _ -> block ~auto_identifiers item
       in
       let content = concat_map block' t in
-      let nl_before = if sp = Tight then Null else nl in
-      elt Block "li" [] (Some (concat nl_before content))
+      elt Block "li" [] (Some content)
     in
-    elt Block name attr (Some (concat nl (concat_map li bl)))
+    let list_items = concat_map li bl in
+    elt Block name attr (Some list_items)
   | Code_block (attr, label, code) ->
     let code_attr =
       if String.trim label = "" then [] else [ "class", "language-" ^ label ]
     in
     let c = text code in
-    (* Code is already plain text *)
     elt Block "pre" attr (Some (elt Inline "code" code_attr (Some c)))
-  | Thematic_break attr -> elt Block "hr" attr None (* <hr> is self-closing *)
+  | Thematic_break attr -> elt Block "hr" attr None
   | Html_block (attr, tag, nested_blocks) ->
-    (* nested_blocks is 'attributes block list' *)
-    let content = concat_map (block ~auto_identifiers) nested_blocks in
-    elt Block tag attr (Some (concat nl content))
+    let render_nested_block b =
+      match b with
+      | Paragraph (_, inline_content) -> inline inline_content
+      | other_block -> block ~auto_identifiers other_block
+    in
+    (* REMOVE prepended nl *)
+    let content = concat_map render_nested_block nested_blocks in
+    elt Block tag attr (Some content)
   | Heading (attr, level, text) ->
-    (* text is 'attributes inline' *)
+    (* Headings are simple, no prepended nl needed/present *)
     let name = "h" ^ string_of_int (max 1 (min 6 level)) in
     elt Block name attr (Some (inline text))
   | Definition_list (attr, l) ->
     let f { term; defs } =
       concat
+        (* REMOVE prepended nl for dt content *)
         (elt Block "dt" [] (Some (inline term)))
+        (* REMOVE prepended nl for dd content *)
         (concat_map (fun s -> elt Block "dd" [] (Some (inline s))) defs)
     in
-    elt Block "dl" attr (Some (concat nl (concat_map f l)))
+    (* REMOVE prepended nl *)
+    elt Block "dl" attr (Some (concat_map f l))
   | Table (attr, headers, rows) ->
     let header_html = table_header headers in
     let body_html = if rows = [] then Null else table_body headers rows in
+    (* REMOVE prepended nl - add_to_buffer handles spacing around thead/tbody *)
     elt Table "table" attr (Some (concat header_html body_html))
 ;;
 
@@ -417,6 +477,8 @@ let of_doc ?(auto_identifiers = true) doc =
 (* Convert the intermediate HTML type 't' to a string *)
 let to_string t =
   let buf = Buffer.create 1024 in
-  add_to_buffer buf t;
+  let at_start_of_line = ref true in
+  (* Start at the beginning of a line *)
+  add_to_buffer buf 0 at_start_of_line t;
   Buffer.contents buf
 ;;
