@@ -6,6 +6,9 @@ include Ast.Impl
 
 module Ctor = Ast_constructors.Impl
 
+(* Expose the Html module directly *)
+module Html = Html
+
 (* Table of contents *)
 
 let headers = Toc.headers
@@ -28,5 +31,16 @@ let parse_inlines (md, defs) : doc =
 let escape_html_entities = Html.htmlentities
 let of_channel ic : doc = parse_inlines (Block_parser.Pre.of_channel ic)
 let of_string s = parse_inlines (Block_parser.Pre.of_string s)
-let to_html ?auto_identifiers doc = Html.to_string (Html.of_doc ?auto_identifiers doc)
+
+(* Implement to_html_t *)
+let to_html_t ?auto_identifiers doc = Html.of_doc ?auto_identifiers doc
+
+(* Implement html_to_string *)
+let html_to_string t = Html.to_string t
+
+(* Keep the direct to_html function *)
+let to_html ?auto_identifiers doc = html_to_string (to_html_t ?auto_identifiers doc)
+(* Or directly: Html.to_string (Html.of_doc ?auto_identifiers doc) *)
+
+(* Keep the existing to_sexp *)
 let to_sexp ast = Format.asprintf "@[%a@]@." Sexp.print (Sexp.create ast)

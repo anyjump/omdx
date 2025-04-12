@@ -15,6 +15,7 @@ depends: [
   "uucp"
   "uutf"
   "uunf"
+  "server-reason-react"
   "ppx_expect"
   "odoc" {with-doc}
 ]

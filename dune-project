@@ -26,6 +26,7 @@
   uucp
   uutf
   uunf
+  server-reason-react
   ppx_expect)
  (tags
   ("add topics" "to describe" omdx)))

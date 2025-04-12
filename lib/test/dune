@@ -1,6 +1,6 @@
 (library
- (name expect_tests)
- (modules expect_tests)
+ (name omdx_test)
+ (modules test_omdx_conv)
  (inline_tests)
  (preprocess
   (pps ppx_expect))

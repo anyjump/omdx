@@ -1,0 +1,18 @@
+(library
+ (name test_server)
+ (modules test_ppx_omdx_server)
+ (inline_tests)
+ (libraries
+   server-reason-react.react
+   server-reason-react.reactDom
+   omdx)
+ (preprocess
+  (pps
+    ppx_expect
+    ppx_omdx
+    server-reason-react.ppx
+    ))
+ (preprocessor_deps
+   (glob_files ../*.md)
+   (glob_files ../*.mdx)))
+

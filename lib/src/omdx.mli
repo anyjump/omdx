@@ -10,6 +10,12 @@ include Ast.Intf
 
 module Ctor : Ast_constructors.Intf
 
+(** {2 Intermediate HTML Generation}
+
+    Provides access to the intermediate HTML representation and rendering functions.
+    Direct manipulation requires understanding the {!Omdx.Html.t} type. *)
+module Html : module type of Html (* Exposes the signature of the Html module *)
+
 (** {2 Generating and constructing tables of contents} *)
 
 val headers : ?remove_links:bool -> 'attr block list -> ('attr * int * 'attr inline) list

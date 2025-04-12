@@ -1,0 +1,10 @@
+(library
+ (name test)
+ (modules test_ppx_omdx)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect ppx_omdx))
+ (preprocessor_deps
+   (glob_files ./*.md)
+   (glob_files ./*.mdx))
+ (libraries omdx))

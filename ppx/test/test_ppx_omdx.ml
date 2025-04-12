@@ -1,0 +1,94 @@
+(* This file will be preprocessed by ppx_mdx *)
+
+(* Make sure Omdx types are available if needed for type checking *)
+(* open Omdx *)
+
+let%expect_test "Basic OMDX Inclusion" =
+  (* The PPX will replace this extension node with the generated AST *)
+  let generated_html : Omdx.Html.t = [%ppx_omdx.html_of_file "test.md"] in
+  print_endline (Omdx.Html.to_string generated_html);
+  [%expect
+    {|
+    <h1 id="hello">
+      Hello
+    </h1>
+    <p>
+      This is <strong>markdown</strong>.
+    </p>
+    <pre>
+      <code class="language-ocaml">let x = 1
+    </code>
+    </pre>
+    <p>
+      <ExampleComponent className="test bg-black-200"></ExampleComponent>
+    </p>
+    |}]
+;;
+
+let%expect_test "Conv html of Basic OMDX Inclusion" =
+  (* The PPX will replace this extension node with the generated AST *)
+  let generated_html : Omdx.Html.t = [%ppx_omdx.html_of_file "test.md"] in
+  print_endline (Omdx.Html.to_string generated_html);
+  [%expect
+    {|
+    <h1 id="hello">
+      Hello
+    </h1>
+    <p>
+      This is <strong>markdown</strong>.
+    </p>
+    <pre>
+      <code class="language-ocaml">let x = 1
+    </code>
+    </pre>
+    <p>
+      <ExampleComponent className="test bg-black-200"></ExampleComponent>
+    </p>
+    |}]
+;;
+
+(* let%expect_test "JSX of Basic OMDX Inclusion" = *)
+(*   (* The PPX will replace this extension node with the generated AST *) *)
+(*   let generated_react_jsx : Omdx.Html.t = [%ppx_omdx.jsx_of_file "test.md"] in *)
+(*   print_endline (Omdx.Html.to_string generated_react_jsx); *)
+(*   [%expect *)
+(*     {| *)
+(*     <h1 id="hello"> *)
+(*       Hello *)
+(*     </h1> *)
+(*     <p> *)
+(*       This is <strong>markdown</strong>. *)
+(*     </p> *)
+(*     <pre> *)
+(*       <code class="language-ocaml">let x = 1 *)
+(*     </code> *)
+(*     </pre> *)
+(*     <p> *)
+(*       <ExampleComponent className="test bg-black-200"></ExampleComponent> *)
+(*     </p> *)
+(*     |}] *)
+(* ;; *)
+
+(* let%expect_test "MDX with HTML Block" = *)
+(*   (* Add another test file: test/html_block.mdx *) *)
+(*   (* <my-tag class="foo"> <p>Inner content</p> </my-tag> *) *)
+(*   let generated_html : Omdx.Html.t = [%omdx "html_block.mdx"] in *)
+(*   print_endline (Omdx.Html.to_string generated_html); *)
+(*   [%expect {| <my-tag class="foo"><p>Inner content</p></my-tag> |}] *)
+(* ;; *)
+(**)
+(* (* Add more tests for different features, errors, etc. *) *)
+(* let%expect_test "File Not Found" = *)
+(*   try *)
+(*     let (_ : Omdx.Html.t) = [%omdx "nonexistent.mdx"] in *)
+(*     print_endline "Should have failed" *)
+(*   with *)
+(*   (* The exact error message might depend on ppxlib version etc. *)
+(*       Adjust the pattern accordingly. Use `dune runtest` to see the *)
+(*       actual error output the first time. *) *)
+(*   | Location.Error err -> print_endline (Location.Error.message err) *)
+(*   | Failure msg -> *)
+(*     print_endline msg (* Fallback for simple failwith *); *)
+(*     [%expect *)
+(*       {| ppx_mdx error: Unable to read file: test/nonexistent.mdx - No such file or directory |}] *)
+(* ;; *)
