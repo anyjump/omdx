@@ -234,9 +234,8 @@ let debug_jsx_of_file_rule =
   Ppxlib.Context_free.Rule.extension debug_jsx_of_file_extension
 ;;
 
-let () = Driver.register_transformation ~rules:[ jsx_of_file_rule ] "jsx_transforms"
-let () = Driver.register_transformation ~rules:[ html_of_file_rule ] "html_transforms"
-
 let () =
-  Driver.register_transformation ~rules:[ debug_jsx_of_file_rule ] "debug_transforms"
+  Driver.register_transformation ~rules:[ jsx_of_file_rule ] "jsx_of_file";
+  Driver.register_transformation ~rules:[ html_of_file_rule ] "html_of_file";
+  Driver.register_transformation ~rules:[ debug_jsx_of_file_rule ] "debug_jsx_of_file"
 ;;
