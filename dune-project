@@ -1,6 +1,6 @@
-(lang dune 3.17)
+(lang dune 3.18)
 (name omdx)
-(generate_opam_files false)
+(generate_opam_files true)
 (source
  (github anyjump/omdx))
 (authors "Ed <ed@anyjump.com>")
@@ -15,7 +15,7 @@
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends 
-  (ocaml (>= 5.0.0))
+  (ocaml (>= 5.3.0))
   uucp
   uutf
   uunf
@@ -29,10 +29,10 @@
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends 
-  (ocaml (>= 5.0.0))
-  ppxlib
+  (ocaml (>= 5.3.0))
+  (ppxlib (<= 0.36.0))
   omdx 
- (server-reason-react :with-test)
+  (server-reason-react :with-test)
   (ppx_expect :with-test))
  (tags
   ("add topics" "to describe" omdx)))
