@@ -68,7 +68,6 @@ and create_jsx_element ~loc tag_name attrs child_opt =
         match key with
         | "class" -> "className"
         | "for" -> "htmlFor"
-        (* ... [other attribute mappings as before] ... *)
         | "aria-labelledby" -> "ariaLabelledBy"
         | "aria-checked" -> "ariaChecked"
         | "aria-expanded" -> "ariaExpanded"
@@ -107,7 +106,6 @@ and create_jsx_element ~loc tag_name attrs child_opt =
 let read_file ~loc filename =
   let source_dir = Filename.dirname loc.loc_start.pos_fname in
   let absolute_filename = Filename.concat source_dir filename in
-  Printf.eprintf "[DEBUG] Reading file: %s\n%!" absolute_filename;
   try
     let ic = open_in absolute_filename in
     let rec read_lines acc =
@@ -118,7 +116,6 @@ let read_file ~loc filename =
         List.rev acc
     in
     let result = String.concat "\n" (read_lines []) in
-    Printf.eprintf "[DEBUG] File read successfully: %s\n%!" filename;
     result
   with
   | exn ->
@@ -181,7 +178,7 @@ let html_of_file_extension =
     expr_of_html ~loc html_of_omdx
   in
   Extension.V3.declare
-    "ppx_omdx.html_of_file"
+    "html_of_file"
     Extension.Context.expression
     Ast_pattern.(single_expr_payload (estring __))
     expand
@@ -201,7 +198,7 @@ let jsx_of_file_extension =
       { list_construct with pexp_attributes = [ jsx_attribute ~loc ] }
   in
   Extension.V3.declare
-    "ppx_omdx.jsx_of_file"
+    "jsx_of_file"
     Extension.Context.expression
     Ast_pattern.(single_expr_payload (estring __))
     expand
@@ -224,7 +221,7 @@ let debug_jsx_of_file_extension =
     Builder.estring ~loc code_string
   in
   Extension.V3.declare
-    "ppx_omdx.debug_jsx_of_file"
+    "debug_jsx_of_file"
     Extension.Context.expression
     Ast_pattern.(single_expr_payload (estring __))
     expand
@@ -237,8 +234,9 @@ let debug_jsx_of_file_rule =
   Ppxlib.Context_free.Rule.extension debug_jsx_of_file_extension
 ;;
 
+let () = Driver.register_transformation ~rules:[ jsx_of_file_rule ] "jsx_transforms"
+let () = Driver.register_transformation ~rules:[ html_of_file_rule ] "html_transforms"
+
 let () =
-  Driver.register_transformation
-    ~rules:[ jsx_of_file_rule; html_of_file_rule; debug_jsx_of_file_rule ]
-    "ppx_omdx"
+  Driver.register_transformation ~rules:[ debug_jsx_of_file_rule ] "debug_transforms"
 ;;

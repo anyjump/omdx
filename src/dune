@@ -1,5 +1,6 @@
 (library
   (name omdx)
+  (public_name omdx)
   (libraries
    str
    uucp

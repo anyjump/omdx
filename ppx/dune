@@ -1,5 +1,6 @@
 (library
-  (name ppx_omdx)
+  (name omdx_ppx)
+  (public_name omdx-ppx)
   (kind ppx_rewriter)
   (libraries
   str

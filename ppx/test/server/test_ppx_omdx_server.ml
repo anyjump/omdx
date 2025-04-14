@@ -4,7 +4,7 @@
 (* open Omdx *)
 
 let%expect_test "Debug JSX String of Basic OMDX Inclusion" =
-  let generated_code_string : string = [%ppx_omdx.debug_jsx_of_file "../test.md"] in
+  let generated_code_string : string = [%debug_jsx_of_file "../test.md"] in
   print_endline generated_code_string;
   [%expect
     {|
@@ -25,6 +25,13 @@ let%expect_test "Debug JSX String of Basic OMDX Inclusion" =
       [@JSX ])])
     [@JSX ])
     |}]
+;;
+
+let%expect_test "JSX of Basic OMDX Inclusion" =
+  let _generated_element : React.element = [%jsx_of_file "../test.md"] in
+  print_endline "none";
+  [%expect
+    {| none |}]
 ;;
 
 (* let%expect_test "JSX Elt String of Basic OMDX Inclusion" = *)

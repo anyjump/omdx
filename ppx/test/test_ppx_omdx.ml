@@ -5,7 +5,7 @@
 
 let%expect_test "Basic OMDX Inclusion" =
   (* The PPX will replace this extension node with the generated AST *)
-  let generated_html : Omdx.Html.t = [%ppx_omdx.html_of_file "test.md"] in
+  let generated_html : Omdx.Html.t = [%html_of_file "test.md"] in
   print_endline (Omdx.Html.to_string generated_html);
   [%expect
     {|
@@ -27,7 +27,7 @@ let%expect_test "Basic OMDX Inclusion" =
 
 let%expect_test "Conv html of Basic OMDX Inclusion" =
   (* The PPX will replace this extension node with the generated AST *)
-  let generated_html : Omdx.Html.t = [%ppx_omdx.html_of_file "test.md"] in
+  let generated_html : Omdx.Html.t = [%html_of_file "test.md"] in
   print_endline (Omdx.Html.to_string generated_html);
   [%expect
     {|

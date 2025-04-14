@@ -9,7 +9,7 @@
  (preprocess
   (pps
     ppx_expect
-    ppx_omdx
+    omdx-ppx
     server-reason-react.ppx
     ))
  (preprocessor_deps

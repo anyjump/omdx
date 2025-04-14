@@ -3,7 +3,7 @@
  (modules test_ppx_omdx)
  (inline_tests)
  (preprocess
-  (pps ppx_expect ppx_omdx))
+  (pps ppx_expect omdx-ppx))
  (preprocessor_deps
    (glob_files ./*.md)
    (glob_files ./*.mdx))
