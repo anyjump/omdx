@@ -450,7 +450,7 @@ let rec block ~auto_identifiers : attributes block -> t = function
 ;;
 
 (* Convert the entire document AST to the intermediate HTML type 't' *)
-let of_doc ?(auto_identifiers = true) doc =
+let of_content ?(auto_identifiers = true) content =
   let identifiers = ref Identifiers.empty in
   (* Use ref for mutable map *)
   let process_block b =
@@ -471,7 +471,7 @@ let of_doc ?(auto_identifiers = true) doc =
       block ~auto_identifiers (Heading (attr', level, text))
     | other -> block ~auto_identifiers other
   in
-  concat_map process_block doc
+  concat_map process_block content
 ;;
 
 (* Convert the intermediate HTML type 't' to a string *)

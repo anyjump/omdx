@@ -174,7 +174,9 @@ let string_of_expression (expr : expression) : string =
 let html_of_file_extension =
   let expand ~ctxt filename =
     let loc = Expansion_context.Extension.extension_point_loc ctxt in
-    let html_of_omdx = read_file ~loc filename |> Omdx.of_string |> Omdx.Html.of_doc in
+    let html_of_omdx =
+      read_file ~loc filename |> Omdx.of_string |> Omdx.content |> Omdx.Html.of_content
+    in
     expr_of_html ~loc html_of_omdx
   in
   Extension.V3.declare
@@ -187,7 +189,9 @@ let html_of_file_extension =
 let jsx_of_file_extension =
   let expand ~ctxt filename =
     let loc = Expansion_context.Extension.extension_point_loc ctxt in
-    let html_t = read_file ~loc filename |> Omdx.of_string |> Omdx.Html.of_doc in
+    let html_t =
+      read_file ~loc filename |> Omdx.of_string |> Omdx.content |> Omdx.Html.of_content
+    in
     let jsx_expr_list = jsx_expr_list_of_html ~loc html_t in
     match jsx_expr_list with
     | [] -> react_null ~loc (* Use React.null for empty *)
@@ -207,7 +211,9 @@ let jsx_of_file_extension =
 let debug_jsx_of_file_extension =
   let expand ~ctxt filename =
     let loc = Expansion_context.Extension.extension_point_loc ctxt in
-    let html_t = read_file ~loc filename |> Omdx.of_string |> Omdx.Html.of_doc in
+    let html_t =
+      read_file ~loc filename |> Omdx.of_string |> Omdx.content |> Omdx.Html.of_content
+    in
     let jsx_expr_list = jsx_expr_list_of_html ~loc html_t in
     let final_expr =
       match jsx_expr_list with

@@ -324,25 +324,6 @@ module Pre = struct
     loop empty
   ;;
 
-  let read_line s off =
-    let buf = Buffer.create 128 in
-    let rec loop cr_read off =
-      if off >= String.length s
-      then Buffer.contents buf, None
-      else (
-        match s.[off] with
-        | '\n' -> Buffer.contents buf, Some (succ off)
-        | '\r' ->
-          if cr_read then Buffer.add_char buf '\r';
-          loop true (succ off)
-        | c ->
-          if cr_read then Buffer.add_char buf '\r';
-          Buffer.add_char buf c;
-          loop false (succ off))
-    in
-    loop false off
-  ;;
-
   let of_string s =
     let link_defs = ref [] in
     let rec loop state = function
@@ -350,7 +331,7 @@ module Pre = struct
         let blocks = finish link_defs state in
         blocks, List.rev !link_defs
       | Some off ->
-        let s, off' = read_line s off in
+        let s, off' = Parser.read_line s off in
         loop (process link_defs state s) off'
     in
     loop empty (Some 0)

@@ -5,7 +5,13 @@ module Impl = struct
   include Ast_block.WithInline
 
   type attributes = (string * string) list
-  type doc = attributes block list
+  type metadata = (string * string) list
+  type content = attributes block list
+
+  type document =
+    { metadata : metadata option
+    ; content : content
+    }
 end
 
 module type Intf = module type of Impl

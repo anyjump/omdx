@@ -2,6 +2,10 @@
 
 An OCaml library for parsing and rendering mdx-like markdown documents as react components.
 
+## TODO:
+
+- [ ] implement yaml frontmatter parsing
+
 ## References
 
 I stole a lot of code and ideas from the following projects:

@@ -18,7 +18,7 @@ type t =
 val htmlentities : string -> string
 
 (* Converts an Omdx document AST to the intermediate HTML representation *)
-val of_doc : ?auto_identifiers:bool -> doc -> t (* doc is Ast.Impl.doc *)
+val of_content : ?auto_identifiers:bool -> content -> t (* doc is Ast.Impl.doc *)
 
 (* Converts the intermediate HTML representation to a final string *)
 val to_string : t -> string

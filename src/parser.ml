@@ -1916,3 +1916,22 @@ let link_reference_definitions st =
   in
   loop []
 ;;
+
+let read_line s off =
+  let buf = Buffer.create 128 in
+  let rec loop cr_read off =
+    if off >= String.length s
+    then Buffer.contents buf, None
+    else (
+      match s.[off] with
+      | '\n' -> Buffer.contents buf, Some (succ off)
+      | '\r' ->
+        if cr_read then Buffer.add_char buf '\r';
+        loop true (succ off)
+      | c ->
+        if cr_read then Buffer.add_char buf '\r';
+        Buffer.add_char buf c;
+        loop false (succ off))
+  in
+  loop false off
+;;
