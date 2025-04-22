@@ -1,6 +1,7 @@
 (library
  (name test_server)
- (modules test_ppx_omdx_server)
+ (modules
+   test_ppx_omdx_server)
  (inline_tests)
  (libraries
    server-reason-react.react

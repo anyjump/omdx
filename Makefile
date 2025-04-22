@@ -7,7 +7,7 @@ ctx-ppx:
 	uvx files-to-prompt -e ml -e mli -c ppx/ | pbcopy
 
 ctx:
-	uvx files-to-prompt -e ml -e mli -c src/ ppx/ | pbcopy
+	uvx files-to-prompt -e ml -e mli -c src/ ppx/ test/ | pbcopy
 
 test:
 	dune runtest -w

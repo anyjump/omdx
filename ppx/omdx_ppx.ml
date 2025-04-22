@@ -169,6 +169,31 @@ let string_of_expression (expr : expression) : string =
   Buffer.contents buffer
 ;;
 
+let metadata_to_expr ~loc (meta_opt : Omdx.metadata option) : expression =
+  match meta_opt with
+  | None -> [%expr None]
+  | Some kvs ->
+    let kv_exprs =
+      List.map
+        (fun (k, v) -> [%expr [%e Builder.estring ~loc k], [%e Builder.estring ~loc v]])
+        kvs
+    in
+    [%expr Some [%e Builder.elist ~loc kv_exprs]]
+;;
+
+(* Takes care of wrapping multiple top-level elements in a fragment *)
+let jsx_expr_of_content ~loc (content : Omdx.content) : expression =
+  let html_t = Omdx.Html.of_content content in
+  let jsx_expr_list = jsx_expr_list_of_html ~loc html_t in
+  match jsx_expr_list with
+  | [] -> react_null ~loc
+  | [ single_expr ] -> single_expr
+  | items ->
+    (* Multiple top-level items -> Fragment ([@JSX] [...]) *)
+    let list_construct = pexp_list ~loc items in
+    { list_construct with pexp_attributes = [ jsx_attribute ~loc ] }
+;;
+
 (* ------- Extension Definitions -------- *)
 
 let html_of_file_extension =
@@ -233,6 +258,46 @@ let debug_jsx_of_file_extension =
     expand
 ;;
 
+let mdx_component_of_file_extension =
+  let expand ~ctxt filename =
+    let loc = Expansion_context.Extension.extension_point_loc ctxt in
+    (* 1. Parse the full document *)
+    let doc = read_file ~loc filename |> Omdx.of_string in
+    let doc_metadata = Omdx.metadata doc in
+    let doc_content = Omdx.content doc in
+    (* 2. Create the metadata binding: let metadata = ... *)
+    let metadata_expr = metadata_to_expr ~loc doc_metadata in
+    let metadata_vb =
+      Builder.value_binding ~loc ~pat:[%pat? metadata] ~expr:metadata_expr
+    in
+    let metadata_struct_item = Builder.pstr_value ~loc Nonrecursive [ metadata_vb ] in
+    (* 3. Create the React component binding: let[@react.component] make = ... *)
+    let react_element_expr = jsx_expr_of_content ~loc doc_content in
+    (* Create the function body: fun () -> <jsx_content> *)
+    let make_fun_expr = [%expr fun () -> [%e react_element_expr]] in
+    (* Create the basic value binding *without* attributes *)
+    let make_vb_basic =
+      Builder.value_binding ~loc ~pat:[%pat? make] ~expr:make_fun_expr
+    in
+    (* Create the [@react.component] attribute *)
+    let react_attr =
+      Builder.attribute ~loc ~name:{ txt = "react.component"; loc } ~payload:(PStr [])
+    in
+    (* Create the value binding *with* the attribute attached *)
+    let make_vb_with_attr = { make_vb_basic with pvb_attributes = [ react_attr ] } in
+    (* ^^^ Attach attribute here, to the value_binding *)
+    (* Create the structure item using the value binding that now has the attribute *)
+    let make_struct_item = Builder.pstr_value ~loc Nonrecursive [ make_vb_with_attr ] in
+    (* 4. Build the module structure *)
+    Builder.pmod_structure ~loc [ metadata_struct_item; make_struct_item ]
+  in
+  Extension.V3.declare
+    "mdx_component_of_file"
+    Extension.Context.module_expr (* Note: expands to a module expression *)
+    Ast_pattern.(single_expr_payload (estring __))
+    expand
+;;
+
 let html_of_file_rule = Ppxlib.Context_free.Rule.extension html_of_file_extension
 let jsx_of_file_rule = Ppxlib.Context_free.Rule.extension jsx_of_file_extension
 
@@ -240,7 +305,14 @@ let debug_jsx_of_file_rule =
   Ppxlib.Context_free.Rule.extension debug_jsx_of_file_extension
 ;;
 
+let mdx_component_of_file_rule =
+  Ppxlib.Context_free.Rule.extension mdx_component_of_file_extension
+;;
+
 let () =
+  Driver.register_transformation
+    ~rules:[ mdx_component_of_file_rule ]
+    "mdx_component_of_file";
   Driver.register_transformation ~rules:[ jsx_of_file_rule ] "jsx_of_file";
   Driver.register_transformation ~rules:[ html_of_file_rule ] "html_of_file";
   Driver.register_transformation ~rules:[ debug_jsx_of_file_rule ] "debug_jsx_of_file"

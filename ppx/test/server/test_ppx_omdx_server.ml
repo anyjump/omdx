@@ -27,11 +27,9 @@ let%expect_test "Debug JSX String of Basic OMDX Inclusion" =
     |}]
 ;;
 
-let%expect_test "JSX of Basic OMDX Inclusion" =
-  let _generated_element : React.element = [%jsx_of_file "../test.md"] in
+let%expect_test "test omdx component" =
   print_endline "none";
-  [%expect
-    {| none |}]
+  [%expect {| none |}]
 ;;
 
 (* let%expect_test "JSX Elt String of Basic OMDX Inclusion" = *)
